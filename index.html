@@ -497,6 +497,7 @@
           <button class="action" id="btnCopyForAI">AIに深掘り分析を依頼(コピー)</button>
         </div>
         <p class="save-status" id="copyStatus" style="margin-top:8px;"></p>
+        <textarea id="manualCopyArea" readonly rows="6" style="display:none; margin-top:10px; font-size:0.8rem;"></textarea>
         <div id="analysisOut" style="display:none;">
           <div class="analysis-block fix">
             <p class="analysis-title">修正すべきこと</p>
@@ -551,7 +552,19 @@
         </tbody>
       </table>
 
-      <p class="hint" style="margin-top:12px;">※ 協議会の設問構成・配点は第31回(2026年3月実施)の実物の問題に合わせています(記述式4問・50点満点)。JCDA側は過去の出題傾向に基づく目安です。</p>
+      <div id="cccTrends">
+        <p class="hint" style="margin-top:18px; margin-bottom:6px;">協議会・直近3回(第29〜31回)の傾向 — 公式公開の実物過去問より</p>
+        <ol class="rule-list">
+          <li><strong>設問は3回連続で一言一句同じ。</strong>本番で設問を読む時間はほぼ不要。解き方を完全に型化してよい</li>
+          <li>事例の相談者は毎回大きく変わる(61歳定年後女性 → 21歳就活中の大学3年生 → 30歳転職検討の男性)。<strong>誰が来ても同じ型で解く</strong>練習を</li>
+          <li>【下線Ｂ】は毎回「CCの伝え返し・確認の応答」。意図は「感情・意向の明確化」「関係構築」の線で書ける</li>
+          <li>設問3の「問題」は毎回、CLの<strong>思い込み・自己理解不足・仕事理解不足・視野の狭さ</strong>のいずれか。根拠になるCL発言とセットで</li>
+          <li>机上に置けるのは受験票・腕時計・筆記具のみ(メモ用紙不可)。<strong>下書きは問題用紙の余白</strong>で行う</li>
+          <li>開始30分で途中退出可だが、退出せず見直しに使うこと</li>
+        </ol>
+      </div>
+
+      <p class="hint" style="margin-top:12px;">※ 協議会の設問構成・配点は第29〜31回の実物の問題に合わせています(記述式4問・50点満点。3回とも同一構成)。JCDA側は過去の出題傾向に基づく目安です。</p>
 
       <p class="hint" style="margin-top:18px; margin-bottom:6px;">当日の3つの合言葉</p>
       <ol class="rule-list">
@@ -955,18 +968,44 @@
     out.style.display = 'block';
   });
 
+  // --- Robust copy with fallbacks (clipboard API → execCommand → manual textarea) ---
+  function copyText(text, statusEl, okMsg) {
+    const manual = () => {
+      const area = document.getElementById('manualCopyArea');
+      area.value = text;
+      area.style.display = 'block';
+      area.focus();
+      area.select();
+      area.setSelectionRange(0, text.length);
+      statusEl.textContent = '自動コピーができない環境のため、下の枠に内容を表示しました。長押し(またはCtrl+A)で全選択してコピーしてください。';
+    };
+    const legacy = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      if (ok) statusEl.textContent = okMsg; else manual();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => { statusEl.textContent = okMsg; }, legacy);
+    } else {
+      legacy();
+    }
+  }
+
   // --- History backup / restore ---
   document.getElementById('btnBackup').addEventListener('click', () => {
     const status = document.getElementById('backupStatus');
     const list = loadHistory();
     if (!list.length) { status.textContent = '記録がまだないため、バックアップするものがありません。'; return; }
     const payload = 'CC-PRACTICE-BACKUP:' + JSON.stringify(list);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(payload).then(
-        () => { status.textContent = `${list.length}件の記録をコピーしました。メモアプリやメールの下書きに貼り付けて保管してください。`; },
-        () => { status.textContent = 'コピーできませんでした。'; }
-      );
-    } else { status.textContent = 'お使いのブラウザではコピー機能が使えません。'; }
+    copyText(payload, status, `${list.length}件の記録をコピーしました。メモアプリやメールの下書きに貼り付けて保管してください。`);
   });
 
   document.getElementById('btnRestore').addEventListener('click', () => {
@@ -1031,11 +1070,7 @@
       return;
     }
     const text = buildAIPrompt(list);
-    const done = () => { status.textContent = 'コピーしました。Claude(claude.ai)などのAIチャットに貼り付けると、詳しい講評が受けられます。'; };
-    const fail = () => { status.textContent = 'コピーできませんでした。お使いのブラウザではこの機能が使えない可能性があります。'; };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, fail);
-    } else { fail(); }
+    copyText(text, status, 'コピーしました。Claude(claude.ai)などのAIチャットに貼り付けると、詳しい講評が受けられます。');
   });
 
   // --- Essay tab: exam body selector ---
@@ -1046,6 +1081,7 @@
     const isJcda = bodyJcda.checked;
     document.getElementById('budgetJcda').style.display = isJcda ? '' : 'none';
     document.getElementById('budgetCcc').style.display = isJcda ? 'none' : '';
+    document.getElementById('cccTrends').style.display = isJcda ? 'none' : '';
     try { localStorage.setItem(BODY_KEY, isJcda ? 'jcda' : 'ccc'); } catch (e) {}
   }
   bodyJcda.addEventListener('change', renderBody);
