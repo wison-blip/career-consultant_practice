@@ -323,6 +323,22 @@
     cursor: pointer; text-decoration: underline; flex-shrink: 0; padding: 2px;
   }
 
+  .analysis-block {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .analysis-block.fix { border-left: 4px solid var(--danger); }
+  .analysis-block.good { border-left: 4px solid var(--accent); }
+  .analysis-block.care { border-left: 4px solid var(--warn); }
+  .analysis-title { font-size: 0.85rem; font-weight: 700; margin: 0 0 8px; }
+  .analysis-block.fix .analysis-title { color: var(--danger); }
+  .analysis-block.good .analysis-title { color: var(--accent-strong); }
+  .analysis-block.care .analysis-title { color: var(--warn); }
+  .analysis-block ul { margin: 0; }
+
   /* --- Time budget sheet --- */
   table.budget {
     width: 100%;
@@ -361,7 +377,7 @@
   <section class="panel active" id="panel-timer">
     <div class="card">
       <h2>ロールプレイ 15分 + 口頭試問 5分</h2>
-      <p class="hint">本番同様の区切りで練習します。録画しながら通しでどうぞ。</p>
+      <p class="hint">本番同様の区切りで練習します。録画しながら通しでどうぞ。残り1分で「ピッ」1回、口頭試問への切替で2回、終了で3回鳴るので、練習中に画面を見る必要はありません(音量を上げておいてください)。</p>
 
       <div class="phase-row">
         <span class="phase-chip" data-phase="0">開始前</span>
@@ -414,12 +430,41 @@
       </fieldset>
 
       <fieldset>
-        <legend>今回の総合印象(態度)</legend>
+        <legend>今回の総合印象(自己評価)</legend>
         <div class="score-row">
           <input type="radio" name="overall" id="oStiff"><label for="oStiff">硬かった</label>
           <input type="radio" name="overall" id="oOk"><label for="oOk">普通</label>
           <input type="radio" name="overall" id="oNatural"><label for="oNatural">自然だった</label>
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>他者評価(相談者役・録画を見た人が記入)</legend>
+        <p class="hint" style="margin-bottom:10px;">自己評価は当てになりません。必ず練習相手か録画を見た第三者に、下の3項目を評価してもらってください。</p>
+
+        <p style="font-size:0.88rem; font-weight:600; margin:10px 0 4px;">話す速さ・声のトーン</p>
+        <div class="score-row">
+          <input type="radio" name="obsVoice" id="v1"><label for="v1">早口・硬い</label>
+          <input type="radio" name="obsVoice" id="v2"><label for="v2">普通</label>
+          <input type="radio" name="obsVoice" id="v3"><label for="v3">落ち着いている</label>
+        </div>
+
+        <p style="font-size:0.88rem; font-weight:600; margin:14px 0 4px;">表情・視線</p>
+        <div class="score-row">
+          <input type="radio" name="obsFace" id="f1"><label for="f1">こわばっている</label>
+          <input type="radio" name="obsFace" id="f2"><label for="f2">普通</label>
+          <input type="radio" name="obsFace" id="f3"><label for="f3">柔らかい</label>
+        </div>
+
+        <p style="font-size:0.88rem; font-weight:600; margin:14px 0 4px;">相談者として「話しやすかったか」</p>
+        <div class="score-row">
+          <input type="radio" name="obsEase" id="e1"><label for="e1">話しにくかった</label>
+          <input type="radio" name="obsEase" id="e2"><label for="e2">普通</label>
+          <input type="radio" name="obsEase" id="e3"><label for="e3">話しやすかった</label>
+        </div>
+
+        <p style="font-size:0.88rem; font-weight:600; margin:14px 0 4px;">相手からの一言(気になった癖・良かった瞬間)</p>
+        <textarea id="obsNotes" placeholder="例:考えているとき視線が下に落ちて長い。うなずきながら要約した場面は自然だった。"></textarea>
       </fieldset>
 
       <fieldset>
@@ -437,6 +482,36 @@
       <div class="history-section">
         <h3>練習履歴</h3>
         <div id="historyList"></div>
+        <div class="controls" style="justify-content:flex-start; margin-top:14px;">
+          <button class="action" id="btnBackup">履歴をバックアップ(コピー)</button>
+          <button class="action" id="btnRestore">バックアップから復元</button>
+        </div>
+        <p class="save-status" id="backupStatus" style="margin-top:8px;">履歴はこの端末のブラウザにしか保存されません。ときどきバックアップをコピーして、メモアプリ等に貼り付けて保管してください。</p>
+      </div>
+
+      <div class="history-section">
+        <h3>傾向分析</h3>
+        <p class="hint" style="margin-bottom:12px;">記録が2回以上たまると、他者評価とチェック項目の推移から「修正すべきこと・改善できたこと・気を付けること」を自動でまとめます。</p>
+        <div class="controls" style="justify-content:flex-start;">
+          <button class="action primary" id="btnAnalyze">傾向を分析する</button>
+          <button class="action" id="btnCopyForAI">AIに深掘り分析を依頼(コピー)</button>
+        </div>
+        <p class="save-status" id="copyStatus" style="margin-top:8px;"></p>
+        <div id="analysisOut" style="display:none;">
+          <div class="analysis-block fix">
+            <p class="analysis-title">修正すべきこと</p>
+            <ul class="rule-list" id="anaFix"></ul>
+          </div>
+          <div class="analysis-block good">
+            <p class="analysis-title">改善できたこと</p>
+            <ul class="rule-list" id="anaGood"></ul>
+          </div>
+          <div class="analysis-block care">
+            <p class="analysis-title">気を付けておくべきこと</p>
+            <ul class="rule-list" id="anaCare"></ul>
+          </div>
+          <p class="hint" style="margin-top:10px;">※ この分析は記録の傾向から機械的に生成した目安です。「AIに深掘り分析を依頼」でコピーした内容をClaudeなどのAIチャットに貼ると、より踏み込んだ講評が受けられます。</p>
+        </div>
       </div>
     </div>
   </section>
@@ -444,18 +519,38 @@
   <!-- TAB 3: ESSAY TIME BUDGET -->
   <section class="panel" id="panel-essay">
     <div class="card">
-      <h2>論述試験 時間配分の目安(60分想定)</h2>
-      <p class="hint">試験団体・年度で問題数や配点は変わるので、当日は自分の受ける形式に合わせて数字を書き換えてください。</p>
-      <table class="budget">
+      <h2>論述試験 時間配分の目安(50分)</h2>
+      <p class="hint">国家資格キャリアコンサルタント試験の論述は、どちらの団体も<strong>50分</strong>です。受験する団体を選んでください。設問数・配点は回によって変わることがあるため、必ず直近の過去問で最終確認を。</p>
+
+      <div class="score-row" style="margin-bottom:16px;">
+        <input type="radio" name="examBody" id="bodyCcc" checked><label for="bodyCcc">キャリアコンサルティング協議会</label>
+        <input type="radio" name="examBody" id="bodyJcda"><label for="bodyJcda">JCDA(日本キャリア開発協会)</label>
+      </div>
+
+      <table class="budget" id="budgetJcda">
         <thead><tr><th>工程</th><th>目安時間</th><th>やること</th></tr></thead>
         <tbody>
-          <tr><td>逐語録の通読</td><td class="num">8分</td><td>設問を先に確認してから読む。使えそうなCL発言に印をつける</td></tr>
-          <tr><td>設問1 下書き→清書</td><td class="num">16分</td><td>余白にキーワードを書き出してから清書。一発書きで消しゴムを使わない</td></tr>
-          <tr><td>設問2 下書き→清書</td><td class="num">16分</td><td>同上</td></tr>
-          <tr><td>設問3 下書き→清書</td><td class="num">16分</td><td>同上</td></tr>
-          <tr><td>見直し・誤字確認</td><td class="num">4分</td><td>大きな書き直しはしない。誤字脱字と設問との対応だけ確認</td></tr>
+          <tr><td>逐語記録の通読(事例Ⅰ・Ⅱ)</td><td class="num">8分</td><td>設問を先に確認してから読む。2つの事例のCCの対応の違い、使えそうなCL発言に印をつける</td></tr>
+          <tr><td>問い1(指定語句の説明など)</td><td class="num">8分</td><td>余白にキーワードを書いてから清書。全消し禁止</td></tr>
+          <tr><td>問い2(事例Ⅰ・Ⅱの対応の違い)</td><td class="num">10分</td><td>「どちらが関係構築できているか」を根拠のCL発言とセットで</td></tr>
+          <tr><td>問い3(CLの問題の見立て)</td><td class="num">10分</td><td>CL自身が気づいていない問題を、本文の発言を根拠に</td></tr>
+          <tr><td>問い4(今後の展開・方策)</td><td class="num">10分</td><td>見立てと矛盾しない方策を書く</td></tr>
+          <tr><td>見直し・誤字確認</td><td class="num">4分</td><td>大きな書き直しはしない。誤字と設問との対応だけ</td></tr>
         </tbody>
       </table>
+
+      <table class="budget" id="budgetCcc" style="display:none;">
+        <thead><tr><th>工程</th><th>目安時間</th><th>やること</th></tr></thead>
+        <tbody>
+          <tr><td>事例記録の通読</td><td class="num">7分</td><td>設問を先に確認してから読む。CLの主訴・感情語・矛盾に印をつける</td></tr>
+          <tr><td>設問1(CLの訴え・主訴)</td><td class="num">9分</td><td>CLの言葉を使って端的に。余白に下書きしてから清書</td></tr>
+          <tr><td>設問2(CCの意図・見立てなど)</td><td class="num">12分</td><td>記録中の根拠箇所を引用しながら</td></tr>
+          <tr><td>設問3(今後の展開・方策)</td><td class="num">18分</td><td>配点が重いことが多い。見立て→目標→具体的方策の順で筋を通す</td></tr>
+          <tr><td>見直し・誤字確認</td><td class="num">4分</td><td>大きな書き直しはしない。誤字と設問との対応だけ</td></tr>
+        </tbody>
+      </table>
+
+      <p class="hint" style="margin-top:12px;">※ 設問構成は過去の出題傾向に基づく目安です。直近の回で構成が変わっている場合は、上の時間割合(通読15%・各設問・見直し8%)を自分の形式に読み替えてください。</p>
 
       <p class="hint" style="margin-top:18px; margin-bottom:6px;">当日の3つの合言葉</p>
       <ol class="rule-list">
@@ -504,6 +599,30 @@
     return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
   }
 
+  // Audio cues so the candidate never has to look at the screen mid-roleplay
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function beep(count) {
+    if (!audioCtx) return;
+    for (let i = 0; i < count; i++) {
+      const t = audioCtx.currentTime + i * 0.35;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    }
+  }
+
   function renderChips() {
     chips.forEach(c => c.classList.toggle('current', Number(c.dataset.phase) === phaseIndex));
   }
@@ -533,9 +652,10 @@
     if (remaining > 0) {
       remaining -= 1;
       updateDisplay();
+      if (remaining === 60 && (phaseIndex === 1 || phaseIndex === 2)) beep(1);
     } else {
-      if (phaseIndex === 1) { enterPhase(2); }
-      else if (phaseIndex === 2) { enterPhase(3); stopTicking(); }
+      if (phaseIndex === 1) { beep(2); enterPhase(2); }
+      else if (phaseIndex === 2) { beep(3); enterPhase(3); stopTicking(); }
     }
   }
 
@@ -551,6 +671,7 @@
   }
 
   document.getElementById('btnStart').addEventListener('click', () => {
+    ensureAudio();
     if (phaseIndex === 0 || phaseIndex === 3) enterPhase(1);
     startTicking();
   });
@@ -580,14 +701,27 @@
   const HISTORY_KEY = 'ccChecklistHistory';
   const checkboxIds = ['c1','c2','c3','c4','c5','c6','c7','c8','c9','c10'];
   const overallIds = { oStiff: '硬かった', oOk: '普通', oNatural: '自然だった' };
+  const observerGroups = {
+    obsVoice: { v1: '早口・硬い', v2: '普通', v3: '落ち着いている' },
+    obsFace:  { f1: 'こわばっている', f2: '普通', f3: '柔らかい' },
+    obsEase:  { e1: '話しにくかった', e2: '普通', e3: '話しやすかった' }
+  };
   const notesArea = document.getElementById('notesArea');
+  const obsNotesArea = document.getElementById('obsNotes');
 
   function currentState() {
     const checks = {};
     checkboxIds.forEach(id => { checks[id] = document.getElementById(id).checked; });
     let overall = '';
     Object.keys(overallIds).forEach(id => { if (document.getElementById(id).checked) overall = overallIds[id]; });
-    return { checks, overall, notes: notesArea.value };
+    const observer = {};
+    Object.keys(observerGroups).forEach(group => {
+      observer[group] = '';
+      Object.keys(observerGroups[group]).forEach(id => {
+        if (document.getElementById(id).checked) observer[group] = observerGroups[group][id];
+      });
+    });
+    return { checks, overall, observer, obsNotes: obsNotesArea.value, notes: notesArea.value };
   }
 
   function applyState(state) {
@@ -596,6 +730,13 @@
     Object.keys(overallIds).forEach(id => {
       document.getElementById(id).checked = state.overall === overallIds[id];
     });
+    Object.keys(observerGroups).forEach(group => {
+      const saved = state.observer ? state.observer[group] : '';
+      Object.keys(observerGroups[group]).forEach(id => {
+        document.getElementById(id).checked = saved === observerGroups[group][id];
+      });
+    });
+    obsNotesArea.value = state.obsNotes || '';
     notesArea.value = state.notes || '';
   }
 
@@ -633,7 +774,14 @@
     }
     el.innerHTML = list.slice().reverse().map((entry, revIdx) => {
       const idx = list.length - 1 - revIdx;
-      const badge = entry.overall ? `<span class="badge ${badgeClass(entry.overall)}">${entry.overall}</span>` : '';
+      const badge = entry.overall ? `<span class="badge ${badgeClass(entry.overall)}">自己: ${entry.overall}</span>` : '';
+      const obs = entry.observer || {};
+      const obsParts = [];
+      if (obs.obsVoice) obsParts.push('声: ' + obs.obsVoice);
+      if (obs.obsFace) obsParts.push('表情: ' + obs.obsFace);
+      if (obs.obsEase) obsParts.push('相手: ' + obs.obsEase);
+      const obsLine = obsParts.length ? `<p class="history-note" style="color:var(--accent-strong);">他者評価 — ${obsParts.join(' / ')}</p>` : '';
+      const obsNote = entry.obsNotes ? `<p class="history-note">相手の一言: ${escapeHtml(entry.obsNotes)}</p>` : '';
       return `<div class="history-item">
         <div class="history-main">
           <div class="history-top">
@@ -641,6 +789,8 @@
             <span class="history-score">${entry.checkedCount}/${checkboxIds.length} 項目クリア</span>
             ${badge}
           </div>
+          ${obsLine}
+          ${obsNote}
           ${entry.notes ? `<p class="history-note">${escapeHtml(entry.notes)}</p>` : ''}
         </div>
         <button class="history-del" data-idx="${idx}">削除</button>
@@ -667,7 +817,10 @@
     list.push({
       date: new Date().toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
       checkedCount,
+      checks: state.checks,
       overall: state.overall,
+      observer: state.observer,
+      obsNotes: state.obsNotes,
       notes: state.notes
     });
     saveHistory(list);
@@ -675,7 +828,7 @@
     document.getElementById('saveStatus').textContent = '記録しました。フォームは次の練習用にクリアされます';
     document.querySelectorAll('#panel-checklist input[type="checkbox"]').forEach(cb => cb.checked = false);
     document.querySelectorAll('#panel-checklist input[type="radio"]').forEach(r => r.checked = false);
-    notesArea.value = '';
+    document.querySelectorAll('#panel-checklist textarea').forEach(t => t.value = '');
     saveCurrentDraft();
     setTimeout(() => { document.getElementById('saveStatus').textContent = '入力内容はこの端末に自動保存されます'; }, 3000);
   });
@@ -687,4 +840,206 @@
 
   loadCurrentDraft();
   renderHistory();
+
+  // --- Trend analysis ---
+  const itemLabels = {
+    c1: '挨拶で一呼吸置く(早口防止)', c2: '開いた姿勢を保つ', c3: '相槌の自然な変化',
+    c4: '沈黙を3秒待つ', c5: '要約+気持ちの言語化', c6: '面談プロセスの現在地把握',
+    c7: '主訴の言い直し', c8: '合意を確認しながら進める', c9: '口頭試問で具体的に語る', c10: '口頭試問で端的に答える'
+  };
+  const axisLabels = { obsVoice: '話す速さ・声のトーン', obsFace: '表情・視線', obsEase: '相談者としての話しやすさ' };
+  const axisScore = {
+    '早口・硬い': 1, 'こわばっている': 1, '話しにくかった': 1,
+    '普通': 2,
+    '落ち着いている': 3, '柔らかい': 3, '話しやすかった': 3
+  };
+  const selfScore = { '硬かった': 1, '普通': 2, '自然だった': 3 };
+
+  function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
+
+  function analyze(list) {
+    const fix = [], good = [], care = [];
+    if (list.length < 2) return null;
+
+    const half = Math.floor(list.length / 2);
+    const early = list.slice(0, half);
+    const recent = list.slice(half);
+    const latest = list[list.length - 1];
+
+    // Observer axes: latest state + trend
+    Object.keys(axisLabels).forEach(axis => {
+      const seq = list.map(e => (e.observer && e.observer[axis]) ? axisScore[e.observer[axis]] : null).filter(v => v !== null);
+      if (!seq.length) return;
+      const eAvg = avg(early.map(e => (e.observer && e.observer[axis]) ? axisScore[e.observer[axis]] : null).filter(v => v !== null));
+      const rAvg = avg(recent.map(e => (e.observer && e.observer[axis]) ? axisScore[e.observer[axis]] : null).filter(v => v !== null));
+      const last = seq[seq.length - 1];
+      if (last === 1) {
+        fix.push(`「${axisLabels[axis]}」が直近でも最低評価です。次の練習はこの1点だけに絞って改善してください。`);
+      } else if (eAvg !== null && rAvg !== null && rAvg - eAvg >= 0.5) {
+        good.push(`「${axisLabels[axis]}」は前半の練習より明らかに良くなっています。この調子を維持してください。`);
+      } else if (eAvg !== null && rAvg !== null && eAvg - rAvg >= 0.5) {
+        care.push(`「${axisLabels[axis]}」は以前より評価が下がっています。慣れによる雑さが出ていないか、次回の録画で確認を。`);
+      }
+      if (last === 3 && seq.length >= 2 && seq[seq.length - 2] === 3) {
+        good.push(`「${axisLabels[axis]}」は2回連続で最高評価。ここは強みとして固まりつつあります。`);
+      }
+    });
+
+    // Checklist items: repeatedly unchecked in recent entries with checks data
+    const withChecks = recent.filter(e => e.checks);
+    if (withChecks.length >= 2) {
+      Object.keys(itemLabels).forEach(id => {
+        const misses = withChecks.filter(e => !e.checks[id]).length;
+        if (misses === withChecks.length) {
+          fix.push(`「${itemLabels[id]}」が直近${withChecks.length}回すべて未達成です。癖として定着している可能性が高いので、練習前に紙に書いて机に置いてください。`);
+        }
+      });
+    }
+
+    // Self vs observer gap
+    const gapEntries = list.filter(e => e.overall && e.observer && e.observer.obsFace);
+    if (gapEntries.length) {
+      const lastGap = gapEntries[gapEntries.length - 1];
+      const s = selfScore[lastGap.overall];
+      const o = axisScore[lastGap.observer.obsFace];
+      if (s - o >= 2) {
+        care.push('自己評価は「自然だった」なのに、他者からは硬く見えています。自己評価より他者評価を信じて修正してください。本番の試験官が見るのは外から見えるあなたです。');
+      } else if (o - s >= 2) {
+        care.push('自分では硬かったと感じていても、外からは柔らかく見えています。緊張の自覚ほど悪い印象は与えていないので、必要以上に不安にならないこと。');
+      }
+    }
+
+    // Overall completion trend
+    const eCount = avg(early.map(e => e.checkedCount));
+    const rCount = avg(recent.map(e => e.checkedCount));
+    if (eCount !== null && rCount !== null && rCount - eCount >= 1.5) {
+      good.push(`チェック達成数が平均${eCount.toFixed(1)}→${rCount.toFixed(1)}項目に伸びています。練習の積み上げが数字に出ています。`);
+    }
+
+    if (!fix.length) fix.push('直近の記録に共通する明確な弱点は見つかりません。他者評価の自由記述欄に書かれた個別の癖を1つ選んで、次回の重点課題にしてください。');
+    if (!good.length) good.push('まだ改善傾向として判定できる材料が足りません。同じ条件(相手・録画)で回数を重ねると変化が見えてきます。');
+    care.push('本番直前の練習では新しい課題を増やさないこと。直近でできていたことを「再現する」練習に切り替えてください。');
+
+    return { fix, good, care };
+  }
+
+  function renderList(ulId, items) {
+    document.getElementById(ulId).innerHTML = items.map(t => `<li>${escapeHtml(t)}</li>`).join('');
+  }
+
+  document.getElementById('btnAnalyze').addEventListener('click', () => {
+    const list = loadHistory();
+    const result = analyze(list);
+    const out = document.getElementById('analysisOut');
+    if (!result) {
+      document.getElementById('copyStatus').textContent = '分析には記録が2回以上必要です。まず「この回を記録する」で練習を記録してください。';
+      out.style.display = 'none';
+      return;
+    }
+    document.getElementById('copyStatus').textContent = '';
+    renderList('anaFix', result.fix);
+    renderList('anaGood', result.good);
+    renderList('anaCare', result.care);
+    out.style.display = 'block';
+  });
+
+  // --- History backup / restore ---
+  document.getElementById('btnBackup').addEventListener('click', () => {
+    const status = document.getElementById('backupStatus');
+    const list = loadHistory();
+    if (!list.length) { status.textContent = '記録がまだないため、バックアップするものがありません。'; return; }
+    const payload = 'CC-PRACTICE-BACKUP:' + JSON.stringify(list);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(payload).then(
+        () => { status.textContent = `${list.length}件の記録をコピーしました。メモアプリやメールの下書きに貼り付けて保管してください。`; },
+        () => { status.textContent = 'コピーできませんでした。'; }
+      );
+    } else { status.textContent = 'お使いのブラウザではコピー機能が使えません。'; }
+  });
+
+  document.getElementById('btnRestore').addEventListener('click', () => {
+    const status = document.getElementById('backupStatus');
+    const input = window.prompt('バックアップした文字列(CC-PRACTICE-BACKUP: で始まるもの)を貼り付けてください。現在の履歴と統合されます。');
+    if (!input) return;
+    const marker = 'CC-PRACTICE-BACKUP:';
+    const idx = input.indexOf(marker);
+    if (idx === -1) { status.textContent = '形式が違います。「CC-PRACTICE-BACKUP:」で始まる文字列を貼り付けてください。'; return; }
+    try {
+      const restored = JSON.parse(input.slice(idx + marker.length));
+      if (!Array.isArray(restored)) throw new Error('not array');
+      const current = loadHistory();
+      const seen = new Set(current.map(e => e.date + '|' + (e.notes || '')));
+      let added = 0;
+      restored.forEach(e => {
+        const key = e.date + '|' + (e.notes || '');
+        if (!seen.has(key)) { current.push(e); seen.add(key); added++; }
+      });
+      current.sort((a, b) => (a.date > b.date ? 1 : -1));
+      saveHistory(current);
+      renderHistory();
+      status.textContent = `復元しました(新規${added}件を追加、重複はスキップ)。`;
+    } catch (e) {
+      status.textContent = '復元に失敗しました。バックアップ文字列が途中で切れていないか確認してください。';
+    }
+  });
+
+  // --- Copy prompt for AI deep-dive ---
+  function buildAIPrompt(list) {
+    const lines = [];
+    lines.push('あなたはキャリアコンサルタント国家試験の面接試験対策を専門とする指導者です。');
+    lines.push('以下は受験者(50代・3回目の受験。前回は総合5点不足、面接の「態度」評価がB。緊張すると硬くなる傾向)のロールプレイ練習記録です。');
+    lines.push('この記録を分析して、(1)今後修正すべきこと (2)改善できたこと (3)本番当日に気を付けるべきこと を、具体的な行動レベルで助言してください。厳しめで構いません。');
+    lines.push('');
+    list.forEach((e, i) => {
+      lines.push(`■ 練習${i + 1}回目(${e.date})`);
+      lines.push(`- セルフチェック達成: ${e.checkedCount}/10項目`);
+      if (e.checks) {
+        const missed = Object.keys(itemLabels).filter(id => !e.checks[id]).map(id => itemLabels[id]);
+        if (missed.length) lines.push(`- 未達成項目: ${missed.join('、')}`);
+      }
+      if (e.overall) lines.push(`- 自己評価(態度): ${e.overall}`);
+      const o = e.observer || {};
+      const obs = [];
+      if (o.obsVoice) obs.push(`声=${o.obsVoice}`);
+      if (o.obsFace) obs.push(`表情=${o.obsFace}`);
+      if (o.obsEase) obs.push(`話しやすさ=${o.obsEase}`);
+      if (obs.length) lines.push(`- 他者評価: ${obs.join(' / ')}`);
+      if (e.obsNotes) lines.push(`- 相手からの一言: ${e.obsNotes}`);
+      if (e.notes) lines.push(`- 本人の気づき: ${e.notes}`);
+      lines.push('');
+    });
+    return lines.join('\n');
+  }
+
+  document.getElementById('btnCopyForAI').addEventListener('click', () => {
+    const list = loadHistory();
+    const status = document.getElementById('copyStatus');
+    if (!list.length) {
+      status.textContent = '記録がまだありません。練習を記録してからお使いください。';
+      return;
+    }
+    const text = buildAIPrompt(list);
+    const done = () => { status.textContent = 'コピーしました。Claude(claude.ai)などのAIチャットに貼り付けると、詳しい講評が受けられます。'; };
+    const fail = () => { status.textContent = 'コピーできませんでした。お使いのブラウザではこの機能が使えない可能性があります。'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else { fail(); }
+  });
+
+  // --- Essay tab: exam body selector ---
+  const BODY_KEY = 'ccExamBody';
+  const bodyJcda = document.getElementById('bodyJcda');
+  const bodyCcc = document.getElementById('bodyCcc');
+  function renderBody() {
+    const isJcda = bodyJcda.checked;
+    document.getElementById('budgetJcda').style.display = isJcda ? '' : 'none';
+    document.getElementById('budgetCcc').style.display = isJcda ? 'none' : '';
+    try { localStorage.setItem(BODY_KEY, isJcda ? 'jcda' : 'ccc'); } catch (e) {}
+  }
+  bodyJcda.addEventListener('change', renderBody);
+  bodyCcc.addEventListener('change', renderBody);
+  try {
+    if (localStorage.getItem(BODY_KEY) === 'jcda') { bodyJcda.checked = true; }
+  } catch (e) {}
+  renderBody();
 </script>
