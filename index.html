@@ -377,7 +377,7 @@
   <section class="panel active" id="panel-timer">
     <div class="card">
       <h2>ロールプレイ 15分 + 口頭試問 5分</h2>
-      <p class="hint">本番同様の区切りで練習します。録画しながら通しでどうぞ。残り1分で「ピッ」1回、口頭試問への切替で2回、終了で3回鳴るので、練習中に画面を見る必要はありません(音量を上げておいてください)。</p>
+      <p class="hint">本番同様の区切りで練習します。録画しながら通しでどうぞ。残り1分で「ピッ」1回、口頭試問への切替で2回、終了で3回鳴るので、練習中に画面を見る必要はありません。音量を上げ、<strong>画面ロックはせず点けたまま</strong>机に置いてください(ロックすると音が鳴りません。時間自体は画面復帰時に正しく追いつきます)。</p>
 
       <div class="phase-row">
         <span class="phase-chip" data-phase="0">開始前</span>
@@ -627,10 +627,13 @@
     chips.forEach(c => c.classList.toggle('current', Number(c.dataset.phase) === phaseIndex));
   }
 
+  let endAt = null; // wall-clock end time (ms) of the current phase; null while paused
+
   function enterPhase(idx) {
     phaseIndex = idx;
     const p = PHASES[idx];
     remaining = p.seconds;
+    endAt = (running && p.seconds) ? Date.now() + p.seconds * 1000 : null;
     totalForBar = p.seconds || 1;
     timerLabel.textContent = p.label;
     renderChips();
@@ -649,11 +652,12 @@
   }
 
   function tick() {
-    if (remaining > 0) {
-      remaining -= 1;
-      updateDisplay();
-      if (remaining === 60 && (phaseIndex === 1 || phaseIndex === 2)) beep(1);
-    } else {
+    if (!running || endAt === null) return;
+    const prev = remaining;
+    remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+    if (remaining !== prev) updateDisplay();
+    if (prev > 60 && remaining <= 60 && remaining > 0 && (phaseIndex === 1 || phaseIndex === 2)) beep(1);
+    if (remaining === 0) {
       if (phaseIndex === 1) { beep(2); enterPhase(2); }
       else if (phaseIndex === 2) { beep(3); enterPhase(3); stopTicking(); }
     }
@@ -662,13 +666,20 @@
   function startTicking() {
     if (tickHandle) return;
     running = true;
-    tickHandle = setInterval(tick, 1000);
+    if (remaining > 0) endAt = Date.now() + remaining * 1000;
+    tickHandle = setInterval(tick, 250);
   }
   function stopTicking() {
+    if (endAt !== null) remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
     running = false;
+    endAt = null;
     clearInterval(tickHandle);
     tickHandle = null;
+    updateDisplay();
   }
+
+  // Catch up instantly when the tab becomes visible again after throttling
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 
   document.getElementById('btnStart').addEventListener('click', () => {
     ensureAudio();
