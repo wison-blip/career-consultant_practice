@@ -404,6 +404,22 @@
   <!-- TAB 2: CHECKLIST -->
   <section class="panel" id="panel-checklist">
     <div class="card">
+      <h2>受験者プロフィール</h2>
+      <p class="hint">「AIに深掘り分析を依頼」の際に、AIへの説明文として使われます。この端末にのみ保存され、外部には送信されません。</p>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <label style="font-size:0.85rem; font-weight:600;">年代
+          <input type="text" id="profAge" placeholder="例: 50代" style="width:100%; margin-top:4px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); font:inherit;">
+        </label>
+        <label style="font-size:0.85rem; font-weight:600;">今回は通算何回目の受験か
+          <input type="text" id="profAttempt" placeholder="例: 4回目(過去3回不合格)" style="width:100%; margin-top:4px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); font:inherit;">
+        </label>
+      </div>
+      <label style="display:block; font-size:0.85rem; font-weight:600; margin-top:12px;">前回までの主な課題
+        <textarea id="profWeakness" placeholder="例: 2回目は総合5点不足。3回目は論述が時間切れで一部書ききれず、面接は「態度」評価がB(緊張すると硬くなる)。" style="margin-top:4px;"></textarea>
+      </label>
+    </div>
+
+    <div class="card">
       <h2>練習後の自己振り返り</h2>
       <p class="hint">録画を見ながら、態度・展開・自己評価の3観点でチェック。前回「態度B」だったところを重点的に。<br><strong>CL</strong> = クライアント(相談者)、<strong>CC</strong> = キャリアコンサルタント(あなた)の略です。</p>
 
@@ -866,6 +882,29 @@
   loadCurrentDraft();
   renderHistory();
 
+  // --- Profile persistence (localStorage) ---
+  const PROFILE_KEY = 'ccProfile';
+  const profFields = ['profAge', 'profAttempt', 'profWeakness'];
+  function saveProfile() {
+    const data = {};
+    profFields.forEach(id => { data[id] = document.getElementById(id).value; });
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+  function loadProfile() {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      profFields.forEach(id => { if (data[id] !== undefined) document.getElementById(id).value = data[id]; });
+    } catch (e) {}
+  }
+  profFields.forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', saveProfile);
+    el.addEventListener('change', saveProfile);
+  });
+  loadProfile();
+
   // --- Trend analysis ---
   const itemLabels = {
     c1: '挨拶で一呼吸置く(早口防止)', c2: '開いた姿勢を保つ', c3: '相槌の自然な変化',
@@ -1037,8 +1076,15 @@
   // --- Copy prompt for AI deep-dive ---
   function buildAIPrompt(list) {
     const lines = [];
+    const age = document.getElementById('profAge').value.trim();
+    const attempt = document.getElementById('profAttempt').value.trim();
+    const weakness = document.getElementById('profWeakness').value.trim();
+    const profileParts = [age, attempt].filter(Boolean).join('・');
+    const profileLine = profileParts
+      ? `以下は受験者(${profileParts}${weakness ? '。' + weakness : ''})のロールプレイ練習記録です。`
+      : '以下は受験者のロールプレイ練習記録です。';
     lines.push('あなたはキャリアコンサルタント国家試験の面接試験対策を専門とする指導者です。');
-    lines.push('以下は受験者(50代・3回目の受験。前回は総合5点不足、面接の「態度」評価がB。緊張すると硬くなる傾向)のロールプレイ練習記録です。');
+    lines.push(profileLine);
     lines.push('この記録を分析して、(1)今後修正すべきこと (2)改善できたこと (3)本番当日に気を付けるべきこと を、具体的な行動レベルで助言してください。厳しめで構いません。');
     lines.push('');
     list.forEach((e, i) => {
