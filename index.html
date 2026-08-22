@@ -425,6 +425,7 @@
 
       <fieldset>
         <legend>態度(関係構築・非言語)</legend>
+        <div class="check-item"><input type="checkbox" id="c11"><label for="c11">入室前ルーティン(深呼吸・肩回し・口角を上げる)を実際に行った</label></div>
         <div class="check-item"><input type="checkbox" id="c1"><label for="c1">最初の挨拶で一呼吸置き、早口になっていなかった</label></div>
         <div class="check-item"><input type="checkbox" id="c2"><label for="c2">相手が話す間、腕を組む・体を反らせるなど閉じた姿勢がなかった</label></div>
         <div class="check-item"><input type="checkbox" id="c3"><label for="c3">相槌が単調でなく、うなずきに自然な変化があった</label></div>
@@ -740,7 +741,7 @@
   // --- Checklist persistence (localStorage) ---
   const CURRENT_KEY = 'ccChecklistDraft';
   const HISTORY_KEY = 'ccChecklistHistory';
-  const checkboxIds = ['c1','c2','c3','c4','c5','c6','c7','c8','c9','c10'];
+  const checkboxIds = ['c11','c1','c2','c3','c4','c5','c6','c7','c8','c9','c10'];
   const overallIds = { oStiff: '硬かった', oOk: '普通', oNatural: '自然だった' };
   const observerGroups = {
     obsVoice: { v1: '早口・硬い', v2: '普通', v3: '落ち着いている' },
@@ -907,7 +908,7 @@
 
   // --- Trend analysis ---
   const itemLabels = {
-    c1: '挨拶で一呼吸置く(早口防止)', c2: '開いた姿勢を保つ', c3: '相槌の自然な変化',
+    c11: '入室前ルーティン(呼吸・肩回し・口角)の実行', c1: '挨拶で一呼吸置く(早口防止)', c2: '開いた姿勢を保つ', c3: '相槌の自然な変化',
     c4: '沈黙を3秒待つ', c5: '要約+気持ちの言語化', c6: '面談プロセスの現在地把握',
     c7: '主訴の言い直し', c8: '合意を確認しながら進める', c9: '口頭試問で具体的に語る', c10: '口頭試問で端的に答える'
   };
